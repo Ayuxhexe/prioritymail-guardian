@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.PriorityMailGuardian" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.PriorityMailGuardian.Alarm" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:colorAccent">#FF3B30</item>
+    </style>
+</resources>
