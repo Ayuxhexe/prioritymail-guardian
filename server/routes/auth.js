@@ -6,6 +6,7 @@ import { User } from '../models/User.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 /**
  * @route   GET /api/auth/google
@@ -30,7 +31,7 @@ router.get('/google/callback', async (req, res) => {
   const { code, state } = req.query;
 
   if (!code) {
-    return res.redirect('http://localhost:5173/?error=no_code');
+    return res.redirect(`${FRONTEND_URL}/?error=no_code`);
   }
 
   try {
@@ -46,7 +47,7 @@ router.get('/google/callback', async (req, res) => {
     const { id, email, name, picture } = userInfoResponse.data;
 
     if (!email) {
-      return res.redirect('http://localhost:5173/?error=no_email');
+      return res.redirect(`${FRONTEND_URL}/?error=no_email`);
     }
 
     // Find or create User in MongoDB
@@ -89,11 +90,11 @@ router.get('/google/callback', async (req, res) => {
     if (state === 'android') {
       res.redirect(`prioritymailguardian://auth?token=${encodeURIComponent(jwtToken)}`);
     } else {
-      res.redirect(`http://localhost:5173/?token=${encodeURIComponent(jwtToken)}`);
+      res.redirect(`${FRONTEND_URL}/?token=${encodeURIComponent(jwtToken)}`);
     }
   } catch (error) {
     console.error('❌ Google OAuth callback error:', error.message);
-    res.redirect('http://localhost:5173/?error=auth_failed');
+    res.redirect(`${FRONTEND_URL}/?error=auth_failed`);
   }
 });
 
