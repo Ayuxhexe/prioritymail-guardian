@@ -61,12 +61,14 @@ app.get('/.well-known/assetlinks.json', (req, res) => {
   }]);
 });
 
-// Fallback route if Android App Links verification fails
+// Fallback route if Android App Links verification fails. The custom scheme is
+// registered by the Android app, so it works even if HTTPS App Link verification
+// has not completed.
 app.get('/android-auth', (req, res) => {
   const token = req.query.token;
   if (!token) return res.status(400).send('Missing token');
   
-  const redirectUri = `intent://auth?token=${encodeURIComponent(token)}#Intent;scheme=prioritymailguardian;package=com.example.prioritymailguardian;end;`;
+  const redirectUri = `prioritymailguardian://auth?token=${encodeURIComponent(token)}`;
   
   res.send(`
     <!DOCTYPE html>
