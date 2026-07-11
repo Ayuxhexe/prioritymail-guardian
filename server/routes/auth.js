@@ -87,7 +87,28 @@ router.get('/google/callback', async (req, res) => {
     console.log(`✅ User authenticated successfully: ${email}`);
 
     if (state === 'android') {
-      res.redirect(`prioritymailguardian://auth?token=${encodeURIComponent(jwtToken)}`);
+      const redirectUri = `prioritymailguardian://auth?token=${encodeURIComponent(jwtToken)}`;
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Authenticating...</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #071018; color: white; margin: 0; text-align: center; }
+            a { color: #071018; background-color: #72E4FF; text-decoration: none; padding: 12px 24px; border-radius: 8px; margin-top: 20px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h2>Authentication Successful</h2>
+          <p>Returning you to the PriorityMail Guardian app...</p>
+          <a href="${redirectUri}">Return to App</a>
+          <script>
+            setTimeout(() => { window.location.href = "${redirectUri}"; }, 100);
+          </script>
+        </body>
+        </html>
+      `);
     } else {
       res.redirect(`http://localhost:5173/?token=${encodeURIComponent(jwtToken)}`);
     }

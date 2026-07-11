@@ -5,11 +5,13 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,6 +31,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,6 +59,8 @@ class MainActivity : ComponentActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    Log.d("AuthFlow", "onCreate: intent=$intent")
+    Log.d("AuthFlow", "onCreate data: ${intent?.data}")
     preferences = AppPreferences(this)
     connected = preferences.isConnected
     handleAuthIntent(intent)
@@ -63,6 +68,11 @@ class MainActivity : ComponentActivity() {
 
     enableEdgeToEdge()
     setContent {
+      // Sync state if preferences change out-of-band
+      LaunchedEffect(Unit) {
+        connected = preferences.isConnected
+      }
+
       PriorityMailGuardianTheme(darkTheme = true, dynamicColor = false) {
         Surface(Modifier.fillMaxSize(), color = Color(0xFF071018)) {
           GuardianHome(
@@ -70,9 +80,29 @@ class MainActivity : ComponentActivity() {
             connected = connected,
             statusMessage = statusMessage,
             onSaveServer = { preferences.serverUrl = it },
-            onSignIn = { serverUrl ->
-              preferences.serverUrl = serverUrl
-              startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("${preferences.serverUrl}/api/auth/google?client=android")))
+            onSignIn = { inputUrl ->
+              // Clean and validate URL
+              var cleanedUrl = inputUrl.trim().trimEnd('/')
+              if (cleanedUrl.isNotEmpty() && !cleanedUrl.startsWith("http")) {
+                if (cleanedUrl.contains("localhost") || cleanedUrl.contains("10.0.2.2") || cleanedUrl.matches(Regex("^(192\\.168|10\\.|172\\.(1[6-9]|2[0-9]|3[0-1]))\\..*"))) {
+                  cleanedUrl = "http://$cleanedUrl"
+                } else {
+                  cleanedUrl = "https://$cleanedUrl"
+                }
+              }
+              preferences.serverUrl = cleanedUrl
+              
+              val loginUrl = "$cleanedUrl/api/auth/google?client=android"
+              Log.d("AuthFlow", "Launching Browser: $loginUrl")
+              try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(loginUrl)).apply {
+                  putExtra(android.provider.Browser.EXTRA_APPLICATION_ID, packageName)
+                  addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(intent)
+              } catch (e: Exception) {
+                Log.e("AuthFlow", "Browser launch failed", e)
+              }
             },
             onRegister = ::registerDevice,
             onDisconnect = {
@@ -89,17 +119,38 @@ class MainActivity : ComponentActivity() {
 
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
+    Log.d("AuthFlow", "onNewIntent: $intent")
+    Log.d("AuthFlow", "onNewIntent data: ${intent.data}")
     setIntent(intent)
     handleAuthIntent(intent)
   }
 
+  override fun onResume() {
+    super.onResume()
+    Log.d("AuthFlow", "onResume: Checking for data in intent...")
+    handleAuthIntent(intent)
+  }
+
   private fun handleAuthIntent(intent: Intent?) {
-    val token = intent?.data?.takeIf { it.scheme == "prioritymailguardian" }?.getQueryParameter("token")
+    val uri = intent?.data
+    Log.d("AuthFlow", "handleAuthIntent check: uri=$uri")
+    if (uri == null) return
+
+    val token = uri.getQueryParameter("token") ?: 
+                uri.fragment?.let { if (it.contains("token=")) it.substringAfter("token=").substringBefore("&") else null }
+
+    Log.d("AuthFlow", "handleAuthIntent token: ${token?.take(10)}...")
+
     if (!token.isNullOrBlank()) {
+      Log.d("AuthFlow", "SUCCESS: Token found. Saving.")
       preferences.sessionToken = token
       connected = true
-      statusMessage = "Signed in. Registering push notifications..."
+      statusMessage = "Authenticated! Registering device..."
       registerDevice()
+      // DO NOT clear intent data yet, let's see if that helps
+      // intent.data = null
+    } else {
+      Log.w("AuthFlow", "handleAuthIntent: No token in URI $uri")
     }
   }
 
@@ -122,11 +173,29 @@ class MainActivity : ComponentActivity() {
   }
 
   private fun registerDevice() {
+    val sToken = preferences.sessionToken
+    val fToken = preferences.fcmToken
+    Log.d("AuthFlow", "registerDevice: sessionToken=${sToken?.take(10)}..., fcmToken=${fToken?.take(10)}...")
+    
+    if (sToken.isNullOrBlank() || fToken.isNullOrBlank()) {
+      Log.w("AuthFlow", "registerDevice: Missing tokens! session=${sToken != null}, fcm=${fToken != null}")
+      if (fToken == null) {
+        statusMessage = "Waiting for Firebase token..."
+      }
+      return
+    }
+
     lifecycleScope.launch {
       statusMessage = "Registering device..."
       DeviceRegistrar.register(preferences)
-        .onSuccess { statusMessage = "Connected — priority alarms are armed" }
-        .onFailure { statusMessage = it.message ?: "Device registration failed" }
+        .onSuccess { 
+          Log.d("AuthFlow", "registerDevice: SUCCESS")
+          statusMessage = "Connected — priority alarms are armed" 
+        }
+        .onFailure { 
+          Log.e("AuthFlow", "registerDevice: FAILURE: ${it.message}")
+          statusMessage = it.message ?: "Device registration failed" 
+        }
     }
   }
 
@@ -195,7 +264,9 @@ private fun GuardianHome(
             } else {
               permissionLauncher.launch(arrayOf(Manifest.permission.CAMERA))
             }
-            if (connected) onRegister() else onSignIn(serverUrl.trimEnd('/'))
+            // Add a manual refresh check before deciding action
+            onRegister() // This will refresh UI state from preferences
+            if (!connected) onSignIn(serverUrl.trimEnd('/'))
           },
           modifier = Modifier.fillMaxWidth().height(52.dp),
           colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF087EA4))

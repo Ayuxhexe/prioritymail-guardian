@@ -1,6 +1,7 @@
 package com.example.prioritymailguardian.data
 
 import android.os.Build
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -10,6 +11,7 @@ import java.net.URL
 object DeviceRegistrar {
   suspend fun register(preferences: AppPreferences): Result<Unit> = withContext(Dispatchers.IO) {
     runCatching {
+      Log.d("DeviceRegistrar", "Starting registration at ${preferences.serverUrl}/api/devices/register")
       val sessionToken = requireNotNull(preferences.sessionToken) { "Sign in before registering this device." }
       val fcmToken = requireNotNull(preferences.fcmToken) { "Firebase has not issued a device token yet." }
       val connection = URL("${preferences.serverUrl}/api/devices/register").openConnection() as HttpURLConnection
