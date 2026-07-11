@@ -61,6 +61,37 @@ app.get('/.well-known/assetlinks.json', (req, res) => {
   }]);
 });
 
+// Fallback route if Android App Links verification fails
+app.get('/android-auth', (req, res) => {
+  const token = req.query.token;
+  if (!token) return res.status(400).send('Missing token');
+  
+  const redirectUri = `intent://auth?token=${encodeURIComponent(token)}#Intent;scheme=prioritymailguardian;package=com.example.prioritymailguardian;end;`;
+  
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Login Successful</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #071018; color: white; margin: 0; text-align: center; }
+        a { display: block; background-color: #48E0A4; color: #071018; text-decoration: none; padding: 20px 40px; border-radius: 12px; margin-top: 30px; font-weight: 900; font-size: 20px; box-shadow: 0 4px 15px rgba(72, 224, 164, 0.4); }
+        p { font-size: 16px; color: #91A4B3; max-width: 80%; line-height: 1.5; }
+      </style>
+    </head>
+    <body>
+      <h2 style="color: #72E4FF;">Login Successful!</h2>
+      <p>Your phone didn't automatically return you to the app.</p>
+      <a href="${redirectUri}">TAP HERE TO RETURN</a>
+      <script>
+        setTimeout(() => { window.location.href = "${redirectUri}"; }, 500);
+      </script>
+    </body>
+    </html>
+  `);
+});
+
 // Auth Routes
 app.use('/api/auth', authRoutes);
 
