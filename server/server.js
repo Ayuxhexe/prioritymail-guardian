@@ -68,7 +68,9 @@ app.get('/android-auth', (req, res) => {
   const token = req.query.token;
   if (!token) return res.status(400).send('Missing token');
   
-  const redirectUri = `prioritymailguardian://auth?token=${encodeURIComponent(token)}`;
+  // Chrome Custom Tabs reliably hand off an explicit Android Intent URL. Its
+  // underlying prioritymailguardian://auth URI is handled by MainActivity.
+  const redirectUri = `intent://auth?token=${encodeURIComponent(token)}#Intent;scheme=prioritymailguardian;package=com.example.prioritymailguardian;end`;
   
   res.send(`
     <!DOCTYPE html>
