@@ -93,15 +93,13 @@ class MainActivity : ComponentActivity() {
               preferences.serverUrl = cleanedUrl
               
               val loginUrl = "$cleanedUrl/api/auth/google?client=android"
-              Log.d("AuthFlow", "Launching Browser: $loginUrl")
+              Log.d("AuthFlow", "Launching CustomTab: $loginUrl")
               try {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(loginUrl)).apply {
-                  putExtra(android.provider.Browser.EXTRA_APPLICATION_ID, packageName)
-                  addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                startActivity(intent)
+                val customTabsIntent = CustomTabsIntent.Builder().build()
+                customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                customTabsIntent.launchUrl(this@MainActivity, Uri.parse(loginUrl))
               } catch (e: Exception) {
-                Log.e("AuthFlow", "Browser launch failed", e)
+                Log.e("AuthFlow", "CustomTab launch failed", e)
               }
             },
             onRegister = ::registerDevice,
