@@ -11,7 +11,7 @@ class AppPreferences(context: Context) {
 
   var sessionToken: String?
     get() = preferences.getString("session_token", null)
-    set(value) = preferences.edit().putString("session_token", value).apply()
+    set(value) { preferences.edit().putString("session_token", value).commit() }
 
   var fcmToken: String?
     get() = preferences.getString("fcm_token", null)
