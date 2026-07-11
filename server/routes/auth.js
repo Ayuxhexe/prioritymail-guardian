@@ -88,7 +88,7 @@ router.get('/google/callback', async (req, res) => {
     console.log(`✅ User authenticated successfully: ${email}`);
 
     if (state === 'android') {
-      res.redirect(`prioritymailguardian://auth?token=${encodeURIComponent(jwtToken)}`);
+      res.redirect(`https://prioritymail-guardian.onrender.com/android-auth?token=${encodeURIComponent(jwtToken)}`);
     } else {
       res.redirect(`${FRONTEND_URL}/?token=${encodeURIComponent(jwtToken)}`);
     }

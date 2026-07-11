@@ -49,6 +49,18 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Serve Android App Links verification file
+app.get('/.well-known/assetlinks.json', (req, res) => {
+  res.json([{
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.example.prioritymailguardian",
+      "sha256_cert_fingerprints": ["D0:BE:92:C5:B8:5B:88:56:76:00:D2:FD:3E:69:00:DD:DE:D1:8C:D5:19:98:3F:7E:C2:3C:1F:C7:24:30:27:43"]
+    }
+  }]);
+});
+
 // Auth Routes
 app.use('/api/auth', authRoutes);
 
