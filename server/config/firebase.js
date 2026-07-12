@@ -33,24 +33,18 @@ export const initFirebase = () => {
 };
 
 export const getFirebaseApp = () => firebaseApp;
-export const sendFCMNotification = async (token, payload) => {
+export const sendPriorityAlarm = async (token, payload) => {
   if (!firebaseApp) {
     throw new Error('Firebase Admin SDK is not initialized.');
   }
   try {
-    const data = Object.fromEntries(
-      Object.entries({
-        ...payload.data,
-        title: payload.notification?.title,
-        body: payload.notification?.body
-      })
-        .filter(([, value]) => value !== undefined && value !== null)
-        .map(([key, value]) => [key, String(value)])
-    );
-
     const response = await admin.messaging().send({
       token,
-      data,
+      data: {
+        type: 'priority_alarm',
+        sender: String(payload.sender ?? payload.data?.sender ?? ''),
+        subject: String(payload.subject ?? payload.data?.subject ?? '')
+      },
       android: {
         priority: 'high',
         ttl: 60 * 1000

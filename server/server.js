@@ -6,7 +6,7 @@ import { initFirebase } from './config/firebase.js';
 import authRoutes from './routes/auth.js';
 import rulesRoutes from './routes/rules.js';
 import alertsRoutes from './routes/alerts.js';
-import devicesRoutes from './routes/devices.js';
+import fcmRoutes from './routes/fcm.js';
 import { startEmailScanner } from './services/gmail/scanner.js';
 
 // Load environment variables
@@ -102,7 +102,7 @@ app.use('/api/auth', authRoutes);
 // Rules & Alerts Routes
 app.use('/api/rules', rulesRoutes);
 app.use('/api/alerts', alertsRoutes);
-app.use('/api/devices', devicesRoutes);
+app.use('/api', fcmRoutes);
 
 // Basic route test
 app.get('/', (req, res) => {

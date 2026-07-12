@@ -1,17 +1,13 @@
-# Android alarm client
+# PriorityMail Guardian Android client
 
-The Android app receives high-priority Firebase data messages and presents a full-screen alarm with alarm-stream audio, vibration, screen wake, optional torch flashing, sender/subject details, Dismiss, and Open Gmail actions.
+This is a small, single-phone FCM alarm receiver. It has no Gmail integration,
+accounts, login, or polling.
 
-## Features
+An FCM data message with `type: "priority_alarm"` opens the full-screen alarm
+when Monitoring is ON. The alert loops the selected ringtone and vibration until
+Dismiss is pressed.
 
-- Full-screen alarm
-- High-volume alarm stream
-- Flashlight alert
-- Vibration
-- Lock-screen notification
-- Gmail shortcut
-- Firebase Push Notifications
-
-## Build
-
-Open in Android Studio and run the app.
+The app is configured to POST `{ "token": "..." }` to
+`https://prioritymail-guardian.onrender.com/api/fcm-token` at launch and whenever
+Firebase rotates the token. Add the Firebase `google-services.json` file to the
+`app/` directory to enable FCM.

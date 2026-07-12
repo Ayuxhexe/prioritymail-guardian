@@ -3,8 +3,8 @@ import { getOAuth2Client } from '../../utils/oauth.js';
 import { User } from '../../models/User.js';
 import { PriorityRule } from '../../models/PriorityRule.js';
 import { AlertHistory } from '../../models/AlertHistory.js';
-import { Device } from '../../models/Device.js';
-import { sendFCMNotification } from '../../config/firebase.js';
+import { FcmToken } from '../../models/FcmToken.js';
+import { sendPriorityAlarm } from '../../config/firebase.js';
 
 let scannerIntervalId = null;
 const SCAN_INTERVAL_MS = 5000; // Check every 5 seconds
@@ -163,17 +163,17 @@ const scanUserInbox = async (user) => {
         const savedAlert = await alert.save();
 
         // Send Push FCM Notifications
-        const devices = await Device.find({ userId: user._id, isEnabled: true });
+        const savedToken = await FcmToken.findById('current');
+        const devices = savedToken ? [savedToken] : [];
         if (devices.length > 0) {
           let delivered = false;
           for (const device of devices) {
             try {
-              await sendFCMNotification(device.token, {
-                notification: {
+              await sendPriorityAlarm(device.token, {
+                // These legacy display fields are ignored; Firebase receives data only.
                   title: `🛡️ Priority: ${parsedEmail.senderName || parsedEmail.sender}`,
-                  body: parsedEmail.subject || 'Priority alert triggered'
-                },
-                data: {
+                  body: parsedEmail.subject || 'Priority alert triggered',
+                  data: {
                   alertId: savedAlert._id.toString(),
                   sender: parsedEmail.sender,
                   subject: parsedEmail.subject || '',

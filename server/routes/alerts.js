@@ -2,8 +2,8 @@ import express from 'express';
 import { AlertHistory } from '../models/AlertHistory.js';
 import { User } from '../models/User.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { sendFCMNotification } from '../config/firebase.js';
-import { Device } from '../models/Device.js';
+import { sendPriorityAlarm } from '../config/firebase.js';
+import { FcmToken } from '../models/FcmToken.js';
 
 const router = express.Router();
 
@@ -52,7 +52,8 @@ router.post('/test', async (req, res) => {
     const savedAlert = await testAlert.save();
 
     // Find registered devices for this user
-    const devices = await Device.find({ userId: req.user.id, isEnabled: true });
+    const savedToken = await FcmToken.findById('current');
+    const devices = savedToken ? [savedToken] : [];
     
     let fcmResults = [];
     let delivered = false;
@@ -60,12 +61,11 @@ router.post('/test', async (req, res) => {
       console.log(`📱 Triggering test alarm for ${devices.length} device(s)`);
       for (const device of devices) {
         try {
-          const result = await sendFCMNotification(device.token, {
-            notification: {
+          const result = await sendPriorityAlarm(device.token, {
+            // These legacy display fields are ignored; Firebase receives data only.
               title: '🛡️ PriorityMail Alert: hr@google.com',
-              body: 'Interview Schedule - Next Steps'
-            },
-            data: {
+              body: 'Interview Schedule - Next Steps',
+              data: {
               alertId: savedAlert._id.toString(),
               sender: 'hr@google.com',
               subject: 'Interview Schedule - Next Steps',
